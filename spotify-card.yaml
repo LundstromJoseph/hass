@@ -1,2 +1,2 @@
-type: 'custom:spotify-card'
-name: 'Spotify Controller' 
+type: 'custom:simple-spotify-card'
+name: 'Simple Spotify Card' 
