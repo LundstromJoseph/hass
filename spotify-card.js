@@ -83,15 +83,15 @@ class SpotifyCard extends HTMLElement {
 
   async getPlaylists(hass) {
     try {
-      const response = await hass.callService(
-        "spotifyplus",
-        "get_playlists_for_user",
-        {
+      const response = await CallServiceWithResponse(hass, {
+        domain: "spotifyplus",
+        service: "get_playlists_for_user",
+        serviceData: {
           entity_id: this.config.player,
           user_id: this.config.user,
           limit_total: 75,
-        }
-      );
+        },
+      });
       return response.playlists || [];
     } catch (error) {
       console.error("Error fetching playlists:", error);
@@ -120,6 +120,36 @@ class SpotifyCard extends HTMLElement {
 
   getCardSize() {
     return 3;
+  }
+}
+
+/**
+ *
+ * @param {*} hass
+ * @param {{domain: string, service: string, serviceData: object}} serviceRequest - Service request object
+ * @returns {Promise<object>} Service response object
+ */
+async function CallServiceWithResponse(hass, serviceRequest) {
+  try {
+    const serviceResponse = await hass.connection.sendMessagePromise({
+      type: "execute_script",
+      sequence: [
+        {
+          service: serviceRequest.domain + "." + serviceRequest.service,
+          data: serviceRequest.serviceData,
+          response_variable: "service_result",
+        },
+        {
+          stop: "done",
+          response_variable: "service_result",
+        },
+      ],
+    });
+
+    return serviceResponse.response;
+  } catch (error) {
+    console.error("Error calling service:", error);
+    return null;
   }
 }
 
