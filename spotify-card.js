@@ -30,9 +30,12 @@ class SpotifyCard extends HTMLElement {
   }
 
   async render(hass) {
+    console.log("Rendering card");
     if (!hass) return;
 
     if (!this.shadowRoot) return;
+
+    console.log("Actually rendering card");
 
     // Get playlists from Spotify integration
     const playlists = await this.getPlaylists(hass);
