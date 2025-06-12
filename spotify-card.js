@@ -92,7 +92,8 @@ class SpotifyCard extends HTMLElement {
           limit_total: 75,
         },
       });
-      return response.playlists || [];
+      console.log(response);
+      return response.result.playlists || [];
     } catch (error) {
       console.error("Error fetching playlists:", error);
       return [];
