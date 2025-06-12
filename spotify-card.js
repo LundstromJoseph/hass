@@ -30,51 +30,17 @@ class SpotifyCard extends HTMLElement {
   }
 
   async render(hass) {
-    console.log("Rendering card");
     if (!hass) return;
 
     if (!this.shadowRoot) return;
 
-    console.log("Actually rendering card");
-
     // Get playlists from Spotify integration
     const playlists = await this.getPlaylists(hass);
 
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div class="card-content">
-          <div class="device-selector">
-            <h3>Select Device</h3>
-            <select id="device-select">
-              ${this.config.devices
-                .map(
-                  (device) => `
-                <option value="${device.id}">${device.name}</option>
-              `
-                )
-                .join("")}
-            </select>
-          </div>
-          
-          <div class="playlist-selector">
-            <h3>Select Playlist</h3>
-            <select id="playlist-select">
-              ${playlists
-                .map(
-                  (playlist) => `
-                <option value="${playlist.id}">${playlist.name}</option>
-              `
-                )
-                .join("")}
-            </select>
-          </div>
-
-          <div class="controls">
-            <button id="play-button">Play</button>
-          </div>
-        </div>
-      </ha-card>
-    `;
+    this.shadowRoot.innerHTML = renderCard({
+      devices: this.config.devices,
+      playlists: playlists,
+    });
 
     // Add event listeners
     this.shadowRoot
@@ -85,22 +51,25 @@ class SpotifyCard extends HTMLElement {
   }
 
   async getPlaylists(hass) {
-    try {
-      const response = await CallServiceWithResponse(hass, {
-        domain: "spotifyplus",
-        service: "get_playlists_for_user",
-        serviceData: {
-          entity_id: this.config.player,
-          user_id: this.config.user,
-          limit_total: 75,
-        },
-      });
-      console.log(response);
-      return response.result.playlists || [];
-    } catch (error) {
-      console.error("Error fetching playlists:", error);
-      return [];
+    if (!this.playlists) {
+      try {
+        const response = await CallServiceWithResponse(hass, {
+          domain: "spotifyplus",
+          service: "get_playlists_for_user",
+          serviceData: {
+            entity_id: this.config.player,
+            user_id: this.config.user,
+            limit_total: 75,
+          },
+        });
+        this.playlists = response.result.items || [];
+      } catch (error) {
+        console.error("Error fetching playlists:", error);
+        return [];
+      }
     }
+
+    return this.playlists;
   }
 
   async playPlaylist() {
@@ -134,7 +103,6 @@ class SpotifyCard extends HTMLElement {
  * @returns {Promise<object>} Service response object
  */
 async function CallServiceWithResponse(hass, serviceRequest) {
-  console.log("Calling service:", serviceRequest);
   try {
     const serviceResponse = await hass.connection.sendMessagePromise({
       type: "execute_script",
@@ -150,8 +118,6 @@ async function CallServiceWithResponse(hass, serviceRequest) {
         },
       ],
     });
-
-    console.log("Service response:", serviceResponse);
 
     return serviceResponse.response;
   } catch (error) {
