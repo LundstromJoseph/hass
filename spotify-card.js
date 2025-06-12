@@ -1,3 +1,5 @@
+import { renderCard } from "./spotify-card-renderer.js";
+
 class SpotifyCard extends HTMLElement {
   constructor() {
     super();
