@@ -46,7 +46,7 @@ class SpotifyCard extends HTMLElement {
     this.shadowRoot
       .getElementById("play-button")
       .addEventListener("click", () => {
-        this.playPlaylist();
+        this.playPlaylist(hass);
       });
   }
 
@@ -72,12 +72,12 @@ class SpotifyCard extends HTMLElement {
     return this.playlists;
   }
 
-  async playPlaylist() {
+  async playPlaylist(hass) {
     const deviceId = this.shadowRoot.getElementById("device-select").value;
     const playlistId = this.shadowRoot.getElementById("playlist-select").value;
 
     try {
-      await this.hass.callService("spotifyplus", "play_playlist", {
+      await hass.callService("spotifyplus", "play_playlist", {
         entity_id: this.config.player,
         device_id: deviceId,
         playlist_id: playlistId,
@@ -152,7 +152,7 @@ customElements.define("spotify-card", SpotifyCard);
  * @param {CardConfig} config - Card configuration
  * @returns {string} HTML string containing the card
  */
-export function renderCard({ devices, playlists }) {
+function renderCard({ devices, playlists }) {
   return `
     <ha-card>
         <div class="card-content">
