@@ -74,13 +74,13 @@ class SpotifyCard extends HTMLElement {
 
   async playPlaylist(hass) {
     const deviceId = this.shadowRoot.getElementById("device-select").value;
-    const playlistId = this.shadowRoot.getElementById("playlist-select").value;
+    const playlistUri = this.shadowRoot.getElementById("playlist-select").value;
 
     try {
-      await hass.callService("spotifyplus", "play_playlist", {
+      await hass.callService("spotifyplus", "player_media_play_context", {
         entity_id: this.config.player,
         device_id: deviceId,
-        playlist_id: playlistId,
+        context_uri: playlistUri,
       });
     } catch (error) {
       console.error("Error playing playlist:", error);
@@ -137,7 +137,7 @@ customElements.define("spotify-card", SpotifyCard);
 /**
  * @typedef {Object} Playlist
  * @property {string} image_url - The URL of the playlist image
- * @property {string} id - The Spotify playlist ID
+ * @property {string} uri - The Spotify playlist uri
  * @property {string} name - The display name of the playlist
  */
 
@@ -175,7 +175,7 @@ function renderCard({ devices, playlists }) {
               ${playlists
                 .map(
                   (playlist) => `
-                <option value="${playlist.id}">${playlist.name}</option>
+                <option value="${playlist.uri}">${playlist.name}</option>
               `
                 )
                 .join("")}
