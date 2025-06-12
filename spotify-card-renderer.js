@@ -22,7 +22,7 @@
  * @param {CardConfig} config - Card configuration
  * @returns {string} HTML string containing the card
  */
-function renderCard({ devices, playlists }) {
+export function renderCard({ devices, playlists }) {
   return `
     <ha-card>
         <div class="card-content">
