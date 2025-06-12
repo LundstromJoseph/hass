@@ -34,19 +34,41 @@ class SpotifyCard extends HTMLElement {
 
     if (!this.shadowRoot) return;
 
+    let selectedPlaylistUri = null;
+    let selectedDeviceId = null;
+
     // Get playlists from Spotify integration
     const playlists = await this.getPlaylists(hass);
 
-    this.shadowRoot.innerHTML = renderCard({
-      devices: this.config.devices,
-      playlists: playlists,
-    });
+    const render = () => {
+      this.shadowRoot.innerHTML = renderCard({
+        devices: this.config.devices,
+        playlists: playlists,
+        selectedPlaylistUri: selectedPlaylistUri,
+        selectedDeviceId: selectedDeviceId,
+      });
+    };
+
+    render();
 
     // Add event listeners
     this.shadowRoot
       .getElementById("play-button")
       .addEventListener("click", () => {
-        this.playPlaylist(hass);
+        const deviceId = this.shadowRoot.querySelector(
+          'input[name="device"]:checked'
+        ).value;
+        const playlistUri = this.shadowRoot.querySelector(
+          'input[name="playlist"]:checked'
+        ).value;
+
+        if (deviceId && playlistUri) {
+          this.playPlaylist(
+            hass,
+            deviceId.split("-")[1],
+            playlistUri.split("-")[1]
+          );
+        }
       });
   }
 
@@ -72,10 +94,7 @@ class SpotifyCard extends HTMLElement {
     return this.playlists;
   }
 
-  async playPlaylist(hass) {
-    const deviceId = this.shadowRoot.getElementById("device-select").value;
-    const playlistUri = this.shadowRoot.getElementById("playlist-select").value;
-
+  async playPlaylist(hass, deviceId, playlistUri) {
     try {
       await hass.callService("spotifyplus", "player_media_play_context", {
         entity_id: this.config.player,
@@ -88,7 +107,10 @@ class SpotifyCard extends HTMLElement {
   }
 
   set hass(hass) {
-    this.render(hass);
+    if (!this._hass) {
+      this._hass = hass;
+      this.render(hass);
+    }
   }
 
   getCardSize() {
@@ -154,38 +176,115 @@ customElements.define("spotify-card", SpotifyCard);
  */
 function renderCard({ devices, playlists }) {
   return `
+  <style>
+    .card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .image {
+      border-radius: 10px;
+      width: 100px;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      filter: grayscale(1);
+      opacity: 0.7;
+    }
+
+    .label {
+      color: #333;
+    }
+
+    fieldset.hidden-radio input[type="radio"] {
+      display: none;
+    }
+
+    fieldset.hidden-radio input[type="radio"]:checked + .item .image {
+      filter: grayscale(0);
+      opacity: 1;
+    }
+
+    fieldset.hidden-radio input[type="radio"]:checked + .item .label {
+      color: #fff;
+    }
+
+    .selector {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border: 0;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .control-button {
+      flex-grow: 1;
+      padding: 10px;
+      border: 0;
+      outline: 0;
+    }
+      
+    .play {
+      background-color:rgb(0, 73, 26);
+    }
+
+    .pause {
+      background-color:rgb(102, 0, 0);
+    }
+
+    .device-select {
+      padding: 10px;
+      border-radius: 10px;
+    }
+  </style>
     <ha-card>
         <div class="card-content">
-          <div class="device-selector">
-            <h3>Select Device</h3>
-            <select id="device-select">
-              ${devices
-                .map(
-                  (device) => `
-                <option value="${device.id}">${device.name}</option>
-              `
-                )
-                .join("")}
-            </select>
-          </div>
+    
           
-          <div class="playlist-selector">
-            <h3>Select Playlist</h3>
-            <select id="playlist-select">
-              ${playlists
-                .map(
-                  (playlist) => `
-                <option value="${playlist.uri}">${playlist.name}</option>
-              `
-                )
-                .join("")}
-            </select>
-          </div>
+          <fieldset class="selector hidden-radio" id="playlist-select">
+            ${playlists.map((playlist) => renderPlaylist(playlist)).join("")}
+          </fieldset>
+
+          <select type="select" class="device-select" id="device-select">
+            ${devices.map((device) => renderDeviceSelector(device)).join("")}
+          </select>
 
           <div class="controls">
-            <button id="play-button">Play</button>
+            <button class="control-button pause" id="pause-button">Pause</button>
+            <button class="control-button play" id="play-button">Play</button>
           </div>
         </div>
       </ha-card>
     `;
+}
+
+function renderPlaylist(playlist) {
+  return `
+  <label for="playlist-${playlist.uri}">
+    <input type="radio" name="playlist" id="playlist-${playlist.uri}" value="playlist-${playlist.uri}" />
+    <span class="item">
+      <img class="image" src="${playlist.image_url}" alt="${playlist.name}" />
+      <span class="label">${playlist.name}</span>
+    </span>
+  </label>
+  `;
+}
+
+function renderDeviceSelector(device) {
+  return `
+    <option value="device-${device.id}">${device.name}</option>
+  `;
 }
