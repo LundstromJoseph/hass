@@ -21,8 +21,7 @@ A custom card for Home Assistant that allows you to control Spotify playback on 
 4. Add the card to your dashboard using the following configuration:
 
 ```yaml
-type: "custom:spotify-card"
-name: "Spotify Controller"
+type: "custom:simple-spotify-card"
 devices:
   - id: "your_device_id_1"
     name: "Living Room Speaker"

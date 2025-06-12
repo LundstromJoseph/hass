@@ -9,6 +9,16 @@ class SpotifyCard extends HTMLElement {
       throw new Error("Please define devices in the card configuration");
     }
 
+    if (!config.player || typeof config.player !== "string") {
+      throw new Error(
+        "Please define a player (usually mediaplayer.spotifyplus_<username> or similar) in the card configuration"
+      );
+    }
+
+    if (!config.user || typeof config.user !== "string") {
+      throw new Error("Please define a user in the card configuration");
+    }
+
     // Validate device configuration
     config.devices.forEach((device) => {
       if (!device.id || !device.name) {
@@ -72,9 +82,16 @@ class SpotifyCard extends HTMLElement {
 
   async getPlaylists() {
     try {
-      const response = await fetch("/api/services/spotify/get_playlists");
-      const data = await response.json();
-      return data.playlists || [];
+      const response = await this.hass.callService(
+        "spotifyplus",
+        "get_playlists_for_user",
+        {
+          entity_id: this.config.player,
+          user_id: this.config.user,
+          limit_total: 75,
+        }
+      );
+      return response.playlists || [];
     } catch (error) {
       console.error("Error fetching playlists:", error);
       return [];
@@ -86,19 +103,22 @@ class SpotifyCard extends HTMLElement {
     const playlistId = this.shadowRoot.getElementById("playlist-select").value;
 
     try {
-      await fetch("/api/services/spotify/play_playlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          device_id: deviceId,
-          playlist_id: playlistId,
-        }),
+      await this.hass.callService("spotifyplus", "play_playlist", {
+        entity_id: this.config.player,
+        device_id: deviceId,
+        playlist_id: playlistId,
       });
     } catch (error) {
       console.error("Error playing playlist:", error);
     }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+  }
+
+  get hass() {
+    return this._hass;
   }
 
   getCardSize() {
