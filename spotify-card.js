@@ -55,9 +55,7 @@ class SpotifyCard extends HTMLElement {
     this.shadowRoot
       .getElementById("play-button")
       .addEventListener("click", () => {
-        const deviceId = this.shadowRoot.querySelector(
-          'input[name="device"]:checked'
-        ).value;
+        const deviceId = this.shadowRoot.getElementById("device-select").value;
         const playlistUri = this.shadowRoot.querySelector(
           'input[name="playlist"]:checked'
         ).value;
