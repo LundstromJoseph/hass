@@ -131,6 +131,7 @@ class SpotifyCard extends HTMLElement {
  * @returns {Promise<object>} Service response object
  */
 async function CallServiceWithResponse(hass, serviceRequest) {
+  console.log("Calling service:", serviceRequest);
   try {
     const serviceResponse = await hass.connection.sendMessagePromise({
       type: "execute_script",
@@ -146,6 +147,8 @@ async function CallServiceWithResponse(hass, serviceRequest) {
         },
       ],
     });
+
+    console.log("Service response:", serviceResponse);
 
     return serviceResponse.response;
   } catch (error) {
