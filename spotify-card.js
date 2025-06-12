@@ -1,4 +1,4 @@
-import { renderCard } from "./spotify-card-renderer.js";
+const renderer = require("./spotify-card-renderer");
 
 class SpotifyCard extends HTMLElement {
   constructor() {
@@ -39,7 +39,7 @@ class SpotifyCard extends HTMLElement {
     // Get playlists from Spotify integration
     const playlists = await this.getPlaylists(hass);
 
-    this.shadowRoot.innerHTML = renderCard({
+    this.shadowRoot.innerHTML = renderer.renderCard({
       devices: this.config.devices,
       playlists: playlists,
     });
