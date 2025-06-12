@@ -27,14 +27,15 @@ class SpotifyCard extends HTMLElement {
     });
 
     this.config = config;
-    this.render();
   }
 
-  async render() {
+  async render(hass) {
+    if (!hass) return;
+
     if (!this.shadowRoot) return;
 
     // Get playlists from Spotify integration
-    const playlists = await this.getPlaylists();
+    const playlists = await this.getPlaylists(hass);
 
     this.shadowRoot.innerHTML = `
       <ha-card>
@@ -80,9 +81,9 @@ class SpotifyCard extends HTMLElement {
       });
   }
 
-  async getPlaylists() {
+  async getPlaylists(hass) {
     try {
-      const response = await this.hass.callService(
+      const response = await hass.callService(
         "spotifyplus",
         "get_playlists_for_user",
         {
@@ -114,11 +115,7 @@ class SpotifyCard extends HTMLElement {
   }
 
   set hass(hass) {
-    this._hass = hass;
-  }
-
-  get hass() {
-    return this._hass;
+    this.render(hass);
   }
 
   getCardSize() {
