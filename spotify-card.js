@@ -5,26 +5,18 @@ class SpotifyCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.devices || !Array.isArray(config.devices)) {
-      throw new Error("Please define devices in the card configuration");
-    }
-
     if (!config.player || typeof config.player !== "string") {
       throw new Error(
-        "Please define a player (usually mediaplayer.spotifyplus_<username> or similar) in the card configuration"
+        "Please define a spotify player (usually mediaplayer.spotify or similar) in the card configuration"
       );
     }
 
-    if (!config.user || typeof config.user !== "string") {
-      throw new Error("Please define a user in the card configuration");
+    if (
+      !config.device_manager_host ||
+      typeof config.device_manager_host !== "string"
+    ) {
+      throw new Error("Please define a device manager host");
     }
-
-    // Validate device configuration
-    config.devices.forEach((device) => {
-      if (!device.id || !device.name) {
-        throw new Error("Each device must have an id and name");
-      }
-    });
 
     this.config = config;
   }
@@ -34,18 +26,14 @@ class SpotifyCard extends HTMLElement {
 
     if (!this.shadowRoot) return;
 
-    let selectedPlaylistUri = null;
-    let selectedDeviceId = null;
-
     // Get playlists from Spotify integration
     const playlists = await this.getPlaylists(hass);
+    const devices = await this.getDevices();
 
     const render = () => {
       this.shadowRoot.innerHTML = renderCard({
         devices: this.config.devices,
         playlists: playlists,
-        selectedPlaylistUri: selectedPlaylistUri,
-        selectedDeviceId: selectedDeviceId,
       });
     };
 
@@ -61,27 +49,31 @@ class SpotifyCard extends HTMLElement {
         ).value;
 
         if (deviceId && playlistUri) {
-          this.playPlaylist(
-            hass,
-            deviceId.split("-")[1],
-            playlistUri.split("-")[1]
-          );
+          console.log(deviceId, playlistUri);
         }
       });
+  }
+
+  async getDevices() {
+    const response = await fetch(
+      `${this.config.device_manager_host}/devices`
+    ).then((res) => res.json());
+    return response.devices;
   }
 
   async getPlaylists(hass) {
     if (!this.playlists) {
       try {
         const response = await CallServiceWithResponse(hass, {
-          domain: "spotifyplus",
-          service: "get_playlists_for_user",
+          domain: "spotify",
+          service: "browse_media",
           serviceData: {
             entity_id: this.config.player,
-            user_id: this.config.user,
-            limit_total: 75,
+            media_content_type: "spotify://current_user_playlists",
+            media_content_id: "current_user_playlists",
           },
         });
+        console.log(response);
         this.playlists = response.result.items || [];
       } catch (error) {
         console.error("Error fetching playlists:", error);
@@ -156,9 +148,9 @@ customElements.define("spotify-card", SpotifyCard);
 
 /**
  * @typedef {Object} Playlist
- * @property {string} image_url - The URL of the playlist image
- * @property {string} uri - The Spotify playlist uri
- * @property {string} name - The display name of the playlist
+ * @property {string} thumbnail - The URL of the playlist image
+ * @property {string} media_content_id - The Spotify playlist uri
+ * @property {string} title - The display name of the playlist
  */
 
 /**
@@ -269,13 +261,17 @@ function renderCard({ devices, playlists }) {
     `;
 }
 
+/**
+ * @param {Playlist} playlist
+ * @returns {string} HTML string containing the playlist
+ */
 function renderPlaylist(playlist) {
   return `
-  <label for="playlist-${playlist.uri}">
-    <input type="radio" name="playlist" id="playlist-${playlist.uri}" value="playlist-${playlist.uri}" />
+  <label for="playlist-${playlist.media_content_id}">
+    <input type="radio" name="playlist" id="playlist-${playlist.media_content_id}" value="playlist-${playlist.media_content_id}" />
     <span class="item">
-      <img class="image" src="${playlist.image_url}" alt="${playlist.name}" />
-      <span class="label">${playlist.name}</span>
+      <img class="image" src="${playlist.thumbnail}" alt="${playlist.title}" />
+      <span class="label">${playlist.title}</span>
     </span>
   </label>
   `;
